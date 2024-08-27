@@ -47,6 +47,20 @@ def get_validation_positions():
                                 break
     return valid_position_list
 
+# 石をひっくり返す
+def flip_pieces(col, row):
+    for vx, vy in vec_table:
+        flip_list = []
+        x = vx + col
+        y = vy + row
+        while 0 <= x < square_num and 0 <= y < square_num and board[y][x] == -player:
+            flip_list.append((x, y))
+            x += vx
+            y += vy
+            if 0 <= x < square_num and 0 <= y < square_num and board[y][x] == player:
+                for flip_x, flip_y in flip_list:
+                    board[flip_y][flip_x] = player
+
 
 
 #=======================================================================================================================================================
@@ -98,7 +112,16 @@ vec_table = [
     (1, 1)      # 右下
 ]
 
+game_over = False
+pass_num = 0
 
+# フォントの設定
+font = pygame.font.SysFont(None, 100, bold=False, italic=False)
+
+black_win_surface = font.render("Black Win!", False, BLACK, RED)
+white_win_surface = font.render("White Win!", False, WHITE, RED)
+draw_surface = font.render("Draw...", False, BLUE, RED)
+reset_surface = font.render("Click to reset!", False, BLACK, RED)
 
 
 #メインループ=============================================================================================================================================================================================
@@ -121,7 +144,31 @@ while run:
     for x, y in vaalid_position_list:
         pygame.draw.circle(screen, YELLOW, (x * square_size + 50,  y * square_size + 50), 45, 3)
 
+    # 石を置ける場所がない場合、パス
+    if len(vaalid_position_list) < 1:
+        player *= -1
+        pass_num += 1
+        
+    # ゲームオーバー判定
+    if pass_num > 1:
+        pass_num = 2
+        game_over = True
 
+    # 勝敗判定
+    black_num = 0
+    white_num = 0
+    if game_over:
+        black_num = sum(row.count(1) for row in board)
+        white_num = sum(row.count(-1) for row in board)
+
+        if black_num > white_num:
+            screen.blit(black_win_surface, (230, 200))
+        elif black_num < white_num:
+            screen.blit(white_win_surface, (230, 200))
+        else:
+            screen.blit(draw_surface, (230, 200))
+        
+        screen.blit(reset_surface, (180, 400))
 
 
 
@@ -136,17 +183,33 @@ while run:
                 run = False
         # マウスクリック
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mx, my = pygame.mouse.get_pos()
-            x = mx // square_size
-            y = my // square_size
-            if board[y][x] == 0 and (x, y) in vaalid_position_list:
+            if game_over == False:
+                mx, my = pygame.mouse.get_pos()
+                x = mx // square_size
+                y = my // square_size
+                if board[y][x] == 0 and (x, y) in vaalid_position_list:
 
-                # 石をひっくり返す
+                    # 石をひっくり返す
+                    flip_pieces(x, y)
+                    board[y][x] = player
+                    player *= -1
+                    pass_num = 0
 
+            else:
+                board = [
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, -1, 1, 0, 0, 0],
+                    [0, 0, 0, 1, -1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0]
+                ]
+                player = 1
+                game_over = False
+                pass_num = 0
 
-
-                board[y][x] = player
-                player *= -1
 
     # 更新
     pygame.display.update()
